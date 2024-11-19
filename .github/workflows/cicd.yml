@@ -1,0 +1,49 @@
+name: Code Analysis and Deploy
+
+on:
+  push:
+    branches:
+      - '3.x'
+  pull_request:
+    branches:
+      - '3.x'
+
+jobs:
+  analyze-code:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run ESLint (JavaScript)
+      run: npx eslint "js/**/*.js"
+
+    - name: Run stylelint (CSS)
+      run: npx stylelint "css/**/*.css"
+
+    - name: Run HTMLHint (HTML)
+      run: npx htmlhint "**/*.html"
+
+  deploy:
+    needs: analyze-code
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check if NETLIFY_BUILD_HOOK_URL is set
+      run: |
+        if [ -z "${{ secrets.NETLIFY_BUILD_HOOK_URL }}" ]; then
+          echo "NETLIFY_BUILD_HOOK_URL is not set. Skipping deployment."
+          exit 0
+        fi
+
+    - name: Netlify Build Hook
+      run: curl -X POST ${{ secrets.NETLIFY_BUILD_HOOK_URL }}
